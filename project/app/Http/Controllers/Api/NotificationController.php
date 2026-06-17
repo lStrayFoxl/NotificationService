@@ -7,11 +7,21 @@ use App\Http\Requests\Api\SendNotificationsRequest;
 use App\Models\Notification;
 use App\Models\NotificationType;
 use App\Models\User;
+use App\Services\DeduplicationService;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller {
-    public function sendNotifications(SendNotificationsRequest $request): JsonResponse {
+    public function sendNotifications(SendNotificationsRequest $request, DeduplicationService $deduplicationService): JsonResponse {
         $validated = $request->validated();
+
+        $hash = $deduplicationService->generateHash($validated);
+        if ($deduplicationService->isDuplicate($hash)) {
+            return response()->json([
+                'success' => true,
+                'cached' => true,
+                'message' => 'Уведомления уже были отправлены ранее (дубликат)',
+            ]);
+        }
 
         $notificationType = NotificationType::where('type', $validated['notification_type'])->first();
 
@@ -39,8 +49,11 @@ class NotificationController extends Controller {
             $notificationIds[] = $notification->id;
         }
 
+        $deduplicationService->saveHash($hash, 3600);
+
         return response()->json([
             'success' => true,
+            'cached' => false,
             'notification_ids' => $notificationIds,
             'count' => count($notificationIds),
         ]);
