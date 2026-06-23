@@ -21,6 +21,7 @@ RUN apt update && apt install -y \
     zip \
     bcmath \
     soap \
+    sockets \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apt autoremove -y && apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

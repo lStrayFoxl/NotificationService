@@ -8,10 +8,11 @@ use App\Models\Notification;
 use App\Models\NotificationType;
 use App\Models\User;
 use App\Services\DeduplicationService;
+use App\Services\RabbitMQ\RabbitMQService;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller {
-    public function sendNotifications(SendNotificationsRequest $request, DeduplicationService $deduplicationService): JsonResponse {
+    public function sendNotifications(SendNotificationsRequest $request, DeduplicationService $deduplicationService, RabbitMQService $rabbitMQService): JsonResponse {
         $validated = $request->validated();
 
         $hash = $deduplicationService->generateHash($validated);
@@ -45,6 +46,9 @@ class NotificationController extends Controller {
             $notification->message = $validated['message'];
             $notification->status = 'queued';
             $notification->save();
+
+            // Публикуем уведомление в RabbitMQ с приоритетом
+            $rabbitMQService->publish($notification);
 
             $notificationIds[] = $notification->id;
         }
