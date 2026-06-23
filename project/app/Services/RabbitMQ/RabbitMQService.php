@@ -3,17 +3,18 @@
 namespace App\Services\RabbitMQ;
 
 use App\Models\Notification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQService {
-    protected ?AMQPChannel $channel = null;
+    private ?AMQPChannel $channel = null;
 
-    protected AMQPStreamConnection $connection;
+    private AMQPStreamConnection $connection;
 
-    protected string $exchangeName;
+    private string $exchangeName;
 
     public function __construct() {
         $this->connection = new AMQPStreamConnection(
@@ -24,6 +25,12 @@ class RabbitMQService {
         );
 
         $this->exchangeName = Config::get('queue.connections.rabbitmq.exchange');
+    }
+
+    public function publishNotifications(Collection $notifications): void {
+        foreach ($notifications as $notification) {
+            $this->publish($notification);
+        }
     }
 
     public function publish(Notification $notification): bool {
@@ -54,7 +61,7 @@ class RabbitMQService {
         return true;
     }
 
-    protected function getChannel(): AMQPChannel {
+    private function getChannel(): AMQPChannel {
         if ($this->channel === null) {
             $this->channel = $this->connection->channel();
         }

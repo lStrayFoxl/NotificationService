@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SendNotificationsRequest;
-use App\Models\Notification;
-use App\Models\NotificationType;
 use App\Models\User;
 use App\Services\DeduplicationService;
+use App\Services\Notifications\NotificationService;
 use App\Services\RabbitMQ\RabbitMQService;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller {
-    public function sendNotifications(SendNotificationsRequest $request, DeduplicationService $deduplicationService, RabbitMQService $rabbitMQService): JsonResponse {
+    public function sendNotifications(
+        SendNotificationsRequest $request,
+        NotificationService $notificationService,
+        RabbitMQService $rabbitMQService,
+        DeduplicationService $deduplicationService,
+    ): JsonResponse {
         $validated = $request->validated();
 
         $hash = $deduplicationService->generateHash($validated);
@@ -24,36 +28,11 @@ class NotificationController extends Controller {
             ]);
         }
 
-        $notificationType = NotificationType::where('type', $validated['notification_type'])->first();
-
-        $users = User::whereIn('id', $validated['user_ids'])->get();
-
-        $notificationIds = [];
-        foreach ($users as $user) {
-            if ($validated['channel'] === 'sms' && !$user->phone) {
-                continue;
-            }
-
-            if ($validated['channel'] === 'email' && !$user->email) {
-                continue;
-            }
-
-            $notification = new Notification();
-            $notification->user_id = $user->id;
-            $notification->notification_type_id = $notificationType->id;
-            $notification->channel = $validated['channel'];
-            $notification->recipient = $validated['channel'] === 'sms' ? $user->phone : $user->email;
-            $notification->message = $validated['message'];
-            $notification->status = 'queued';
-            $notification->save();
-
-            // Публикуем уведомление в RabbitMQ с приоритетом
-            $rabbitMQService->publish($notification);
-
-            $notificationIds[] = $notification->id;
-        }
-
+        $notifications = $notificationService->createNotifications($validated['user_ids'], $validated['notification_type'], $validated['channel'], $validated['message']);
+        $rabbitMQService->publishNotifications($notifications);
         $deduplicationService->saveHash($hash, 3600);
+
+        $notificationIds = $notifications->pluck('id');
 
         return response()->json([
             'success' => true,
@@ -65,7 +44,6 @@ class NotificationController extends Controller {
 
     public function getUserNotifications(int $userId): JsonResponse {
         $user = User::find($userId);
-
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -73,9 +51,7 @@ class NotificationController extends Controller {
             ], 404);
         }
 
-        $notifications = Notification::where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $notifications = $user->getUserNotifications();
 
         $notificationData = $notifications->map(function ($notification) {
             return [

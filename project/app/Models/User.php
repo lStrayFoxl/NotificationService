@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable {
     /** @use HasFactory<UserFactory> */
@@ -37,6 +38,14 @@ class User extends Authenticatable {
 
     public function notifications(): HasMany {
         return $this->hasMany(Notification::class, 'user_id');
+    }
+
+    public function getUserNotifications(): Collection {
+        $notifications = $this->notifications()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $notifications;
     }
 
     /**
