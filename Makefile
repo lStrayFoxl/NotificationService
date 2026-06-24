@@ -3,7 +3,7 @@ export UID=$(shell id -u)
 export GID=$(shell id -g)
 
 # Подготовка к запуску
-setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage rabbitmq_create_exchange_and_queues stop
+setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage laravel_migrate rabbitmq_create_exchange_and_queues stop
 
 # Запуск
 run_dev:
@@ -27,6 +27,9 @@ laravel_init:
 
 laravel_setup_storage:
 	docker compose run --workdir /var/www/project --no-deps --rm php php artisan storage:link
+
+laravel_migrate:
+	docker compose exec --workdir /var/www/project php php artisan migrate
 
 rabbitmq_create_exchange:
 	docker compose exec rabbitmq rabbitmqadmin declare exchange name=notifications type=direct
