@@ -1,0 +1,59 @@
+{
+  "info": {
+    "_postman_id": "bde3a51b-56f7-44b5-b1b7-29bf8c242177",
+    "name": "Notification Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55954329",
+    "_collection_link": "https://go.postman.co/collection/55954329-bde3a51b-56f7-44b5-b1b7-29bf8c242177?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Get User Notifications",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "localhost/api/user/UserID/notifications",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "api",
+            "user",
+            "UserID",
+            "notifications"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Send Notifications",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"notification_type\": \"\", // Укажите тип из таблицы notification_type.\r\n  \"channel\": \"\", // Укажите sms или email.\r\n  \"message\": \"\", // Укажите текст уведомления.\r\n  \"user_ids\": [] // Укажите ID пользователей, из таблицы users.\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost/api/notifications/send-notifications",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "api",
+            "notifications",
+            "send-notifications"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
