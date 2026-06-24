@@ -3,7 +3,10 @@ export UID=$(shell id -u)
 export GID=$(shell id -g)
 
 # Подготовка к запуску
-setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage laravel_migrate rabbitmq_create_exchange_and_queues stop
+setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage stop
+
+# Подготовка БД и RabbitMQ для работы
+init_db_and_rabbitmq: laravel_migrate rabbitmq_create_exchange_and_queues
 
 # Запуск
 run_dev:
