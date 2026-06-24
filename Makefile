@@ -3,7 +3,7 @@ export UID=$(shell id -u)
 export GID=$(shell id -g)
 
 # Подготовка к запуску
-setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage stop
+setup_dev: init_dev composer_install_dev laravel_init laravel_setup_storage rabbitmq_create_exchange_and_queues stop
 
 # Запуск
 run_dev:
@@ -12,6 +12,9 @@ run_dev:
 # Остановка
 stop:
 	docker compose --profile "*" down
+
+# Создание необходимых exchange и queues для RabbitMQ
+rabbitmq_create_exchange_and_queues: rabbitmq_create_exchange rabbitmq_create_sms_queue rabbitmq_create_email_queue rabbitmq_binding_sms_queue rabbitmq_binding_email_queue
 
 init_dev:
 	cp -n ./project/.env.example ./project/.env
@@ -24,9 +27,6 @@ laravel_init:
 
 laravel_setup_storage:
 	docker compose run --workdir /var/www/project --no-deps --rm php php artisan storage:link
-
-# Создание необходимых exchange и queues для RabbitMQ
-rabbitmq_create_exchange_and_queues: rabbitmq_create_exchange rabbitmq_create_sms_queue rabbitmq_create_email_queue rabbitmq_binding_sms_queue rabbitmq_binding_email_queue
 
 rabbitmq_create_exchange:
 	docker compose exec rabbitmq rabbitmqadmin declare exchange name=notifications type=direct
